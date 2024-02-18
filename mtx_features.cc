@@ -75,13 +75,13 @@ float threadImbalanceFactor(long int warps, long int n, int *row_ptr){
 }
 
 
-long int bandiwdth(long int n, int *row_ptr, int *cols){
+long int bandwidth(long int n, int *row_ptr, int *cols){
   long int bw = 0;
 
   /* Loop over each row */
-  for (int i = 0; i < n; ++i) {
+  for (int i = 0; i < n; i++) {
     /* Loop over the non-zero elements in the current row */
-    for (int j = row_ptr[i]; j < row_ptr[i + 1]; ++j) {
+    for (int j = row_ptr[i]; j < row_ptr[i + 1]; j++) {
       /* Compute the absolute distance from the diagonal */
       long int dist = std::abs(i - cols[j]);
       if (dist>bw) {
@@ -92,8 +92,27 @@ long int bandiwdth(long int n, int *row_ptr, int *cols){
   return bw;
 }
 
-float offDiagonal(long int n, int *row_ptr){
-  return 0;
+long int offDiagonal(long int n, int *row_ptr, int *cols, int blocks, long int nnz){
+  long int rows_per_block = static_cast<int>(std::ceil(static_cast<double>(n) / blocks));
+  long int count = 0;
+
+  for (int i = 0; i < blocks; i++) {
+    int left = 0, right = rows_per_block;
+    for (int j = 0; j < rows_per_block; j++) {
+      long int id = rows_per_block*i + j;
+      if (id >= n)
+        break;
+
+      //printf("%d\n", id);
+      for (int k = row_ptr[id]; k < row_ptr[id + 1]; k++) {
+        if ((id-left <= cols[k]) && (cols[k] < id+right))
+          count++;
+      }
+      left++;
+      right--;
+    }
+  }
+  return nnz-count;
 }
 
 int main(int argc, char * argv[]){
@@ -108,6 +127,7 @@ int main(int argc, char * argv[]){
 
   /* Get CSR parameters */
   long int n = csr->get_dimensions()[0];
+  long int nnz = csr->get_num_nnz();
   auto *row_ptr = csr->get_row_ptr();
   auto *cols = csr->get_col();
 
@@ -118,9 +138,16 @@ int main(int argc, char * argv[]){
     std::string function_name = argv[i];
 
     if (function_name == "--bandwidth") {
+      /* Compute bandwidth */
       long int bw;
-      bw = bandiwdth(n, row_ptr, cols);
-      std::cout<<"bandiwdth: "<<bw<<std::endl;
+      bw = bandwidth(n, row_ptr, cols);
+      std::cout<<"bandwidth: "<<bw<<std::endl;
+
+    } else if (function_name == "--offDiagonal") {
+      /* Compute off diagonal nnzs */
+      long int offCount;
+      offCount = offDiagonal(n, row_ptr, cols, 64, nnz);
+      std::cout<<"off Diagonal nnzs: "<<offCount<<std::endl;
 
     } else if (function_name == "--imbWarp") {
       /* Compute imbalance factor */
