@@ -45,7 +45,10 @@ float warpImbalanceFactor(long int warps, long int n, int *row_ptr){
       local_avg += row_ptr[i*32+j+1]-row_ptr[i*32+j];
     }
     local_avg = local_avg/32;
-    avg += local_max/local_avg;
+    if (local_avg == 0)
+      avg += 1;
+    else
+      avg += local_max/local_avg;
     local_avg = 0;
     local_max = 0;
   }
@@ -71,6 +74,28 @@ float threadImbalanceFactor(long int warps, long int n, int *row_ptr){
   return (float) max/avg;
 }
 
+
+long int bandiwdth(long int n, int *row_ptr, int *cols){
+  long int bw = 0;
+
+  /* Loop over each row */
+  for (int i = 0; i < n; ++i) {
+    /* Loop over the non-zero elements in the current row */
+    for (int j = row_ptr[i]; j < row_ptr[i + 1]; ++j) {
+      /* Compute the absolute distance from the diagonal */
+      long int dist = std::abs(i - cols[j]);
+      if (dist>bw) {
+        bw = dist;
+      }
+    }
+  }
+  return bw;
+}
+
+float offDiagonal(long int n, int *row_ptr){
+  return 0;
+}
+
 int main(int argc, char * argv[]){
 
   if (argc < 2){
@@ -83,23 +108,43 @@ int main(int argc, char * argv[]){
 
   /* Get CSR parameters */
   long int n = csr->get_dimensions()[0];
-  int *row_ptr = csr->get_row_ptr();
+  auto *row_ptr = csr->get_row_ptr();
+  auto *cols = csr->get_col();
 
   /* Get number of warps used */
   long int warps = static_cast<int>(std::ceil(static_cast<double>(n) / 32));
-  float imb_factor, warp_imb_factor, thread_imb_factor;
 
-  /* Compute imbalance factor */
-  imb_factor = imbalanceFactor(warps, n, row_ptr);
-  std::cout<<imb_factor<<std::endl;
+  for (int i = 1; i < argc; i++) {
+    std::string function_name = argv[i];
 
-  /* Compute inside warp imbalance factor */
-  warp_imb_factor = warpImbalanceFactor(warps, n, row_ptr);
-  std::cout<<warp_imb_factor<<std::endl;
+    if (function_name == "--bandwidth") {
+      long int bw;
+      bw = bandiwdth(n, row_ptr, cols);
+      std::cout<<"bandiwdth: "<<bw<<std::endl;
 
-  /* Compute thread imbalance factor */
-  thread_imb_factor = threadImbalanceFactor(warps, n, row_ptr);
-  std::cout<<thread_imb_factor<<std::endl;
+    } else if (function_name == "--imbWarp") {
+      /* Compute imbalance factor */
+      float imb_factor;
+      imb_factor = imbalanceFactor(warps, n, row_ptr);
+      std::cout<<"imbalance factor across warps: "<<imb_factor<<std::endl;
+
+    } else if (function_name == "--imbThread") {
+      /* Compute thread imbalance factor */
+      float thread_imb_factor;
+      thread_imb_factor = threadImbalanceFactor(warps, n, row_ptr);
+      std::cout<<"imbalance factor across threads: "<<thread_imb_factor<<std::endl;
+
+    } else if (function_name == "--imbInsideWarp") {
+      /* Compute inside warp imbalance factor */
+      float warp_imb_factor;
+      warp_imb_factor = warpImbalanceFactor(warps, n, row_ptr);
+      std::cout<<"average imbalance factor inside a warp: "<<warp_imb_factor<<std::endl;
+    }
+  }
+
+  /*int rows_per_thread = static_cast<int>(std::ceil(static_cast<double>(n)/221184));
+  int remaining = n%221184;
+  std::cout<<rows_per_thread<<" "<<remaining<<std::endl;*/
 
   return 0;
 }
