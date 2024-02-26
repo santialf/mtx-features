@@ -166,6 +166,10 @@ int main(int argc, char * argv[]){
       float warp_imb_factor;
       warp_imb_factor = warpImbalanceFactor(warps, n, row_ptr);
       std::cout<<"average imbalance factor inside a warp: "<<warp_imb_factor<<std::endl;
+
+    } else if (function_name == "--nnzs") {
+      std::cout<<"nnzs: "<<nnz<<std::endl;
+
     }
   }
 
