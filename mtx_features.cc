@@ -103,7 +103,6 @@ float offDiagonal(long int n, int *row_ptr, int *cols, int blocks, long int nnz)
       if (id >= n)
         break;
 
-      //printf("%d\n", id);
       for (int k = row_ptr[id]; k < row_ptr[id + 1]; k++) {
         if ((id-left <= cols[k]) && (cols[k] < id+right))
           count++;
@@ -116,9 +115,30 @@ float offDiagonal(long int n, int *row_ptr, int *cols, int blocks, long int nnz)
 }
 
 long int blocks(long int n, int *row_ptr, int *cols, int block_size, long int nnz){
-  
-  
-  return 1;
+
+  int num_blocks = static_cast<int>(std::ceil(static_cast<double>(n) / block_size));
+  int sum = 0;
+
+  std::unordered_map<int, int> hashMap;
+
+  for (int i = 0; i < num_blocks; i++) {
+    for (int j = 0; j < block_size; j++) {
+      long int id = block_size*i + j;
+      if (id >= n)
+        break;
+      for (int k = row_ptr[id]; k < row_ptr[id + 1]; k++) {
+        int bucket = static_cast<int>(std::ceil(static_cast<double>(cols[k]) / block_size));
+        if (((cols[k]) % block_size) != 0)
+          bucket--;
+        auto it = hashMap.find(bucket);
+        if (it == hashMap.end())
+          hashMap.insert({bucket, 1});
+      }
+    }
+    sum += hashMap.size();
+    hashMap.clear();
+  }
+  return sum;
 }
 
 int main(int argc, char * argv[]){
@@ -175,6 +195,10 @@ int main(int argc, char * argv[]){
 
     } else if (function_name == "--nnzs") {
       std::cout<<"nnzs: "<<nnz<<std::endl;
+
+    } else if (function_name == "--blocks") {
+      int num_blocks = blocks(n, row_ptr, cols, 256, nnz);
+      std::cout<<"number of blocks with nnzs: "<<num_blocks<<std::endl;
 
     }
   }
