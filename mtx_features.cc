@@ -115,6 +115,12 @@ float offDiagonal(long int n, int *row_ptr, int *cols, int blocks, long int nnz)
   return (nnz-count)/nnz;
 }
 
+long int blocks(long int n, int *row_ptr, int *cols, int block_size, long int nnz){
+  
+  
+  return 1;
+}
+
 int main(int argc, char * argv[]){
 
   if (argc < 2){
