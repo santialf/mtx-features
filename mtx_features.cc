@@ -92,26 +92,17 @@ float bandwidth(long int n, int *row_ptr, int *cols){
   return bw/n;
 }
 
-float offDiagonal(long int n, int *row_ptr, int *cols, int blocks, long int nnz){
-  float rows_per_block = static_cast<int>(std::ceil(static_cast<double>(n) / blocks));
+float diagonal(long int n, int *row_ptr, int *cols){
+  float b = static_cast<int>(std::ceil(static_cast<double>(n) / 128));
   float count = 0;
 
-  for (int i = 0; i < blocks; i++) {
-    int left = 0, right = rows_per_block;
-    for (int j = 0; j < rows_per_block; j++) {
-      long int id = rows_per_block*i + j;
-      if (id >= n)
-        break;
-
-      for (int k = row_ptr[id]; k < row_ptr[id + 1]; k++) {
-        if ((id-left <= cols[k]) && (cols[k] < id+right))
-          count++;
-      }
-      left++;
-      right--;
+  for (int i = 0; i < n; i++) {
+    for (int j = row_ptr[i]; j < row_ptr[i + 1]; j++) {
+      if (abs(cols[j]-i) <= b)
+        count++;
     }
   }
-  return (nnz-count)/nnz;
+  return count;
 }
 
 long int blocks(long int n, int *row_ptr, int *cols, int block_size, long int nnz){
@@ -169,11 +160,12 @@ int main(int argc, char * argv[]){
       bw = bandwidth(n, row_ptr, cols);
       std::cout<<"bandwidth: "<<bw<<std::endl;
 
-    } else if (function_name == "--offDiagonal") {
+    } else if (function_name == "--diagonal") {
       /* Compute off diagonal nnzs */
-      float offCount;
-      offCount = offDiagonal(n, row_ptr, cols, 64, nnz);
-      std::cout<<"off Diagonal nnzs: "<<offCount<<std::endl;
+      float dcount;
+      dcount = diagonal(n, row_ptr, cols);
+      dcount = (dcount/nnz)*100;
+      std::cout<<"diagonal nnzs (%): "<<dcount<<std::endl;
 
     } else if (function_name == "--imbWarp") {
       /* Compute imbalance factor */
