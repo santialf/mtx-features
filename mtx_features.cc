@@ -118,7 +118,7 @@ float blockDiagonal(long int n, int *row_ptr, int *cols){
         break;
 
       for (int k = row_ptr[id]; k < row_ptr[id + 1]; k++) {
-        if ((cols[k] >= id-left) && (cols[k] < id+right))
+        if ((cols[k] >= id-left) && (cols[k] <= id+right))
           count++;
       }
       left++;
@@ -127,6 +127,41 @@ float blockDiagonal(long int n, int *row_ptr, int *cols){
   }
 
   return count;
+}
+
+float cacheOut(long int n, int *row_ptr, int *cols){
+
+  int max = 0;
+  long int blocks = 32;
+  float b = static_cast<int>(std::ceil(static_cast<double>(n) / blocks));
+  float localCount = 0;
+  float total = 0;
+
+  for (int i = 0; i < blocks; i++) {
+    long int left = 0, right = b;
+    while (left <= n) {
+      for (int j = 0; j < b; j++) {
+        long int id = b*i + j;
+        if (id >= n)
+          break;
+
+        for (int k = row_ptr[id]; k < row_ptr[id + 1]; k++) {
+          if ((cols[k] >= left) && (cols[k] <= right))
+            localCount++;
+          if (cols[k] > right)
+            break;
+        }
+      }
+      if (localCount > max)
+        max = localCount;
+      left+=b;
+      right+=b;
+      localCount = 0;
+    }
+    total += max;
+    max = 0;
+  }
+  return total;
 }
 
 long int blocks(long int n, int *row_ptr, int *cols, int block_size, long int nnz){
@@ -197,6 +232,13 @@ int main(int argc, char * argv[]){
       bdcount = blockDiagonal(n, row_ptr, cols);
       bdcount = (bdcount/nnz)*100;
       std::cout<<"blockDiagonal nnzs (%): "<<bdcount<<std::endl;
+
+    } else if (function_name == "--cacheOut") {
+      /* Compute off diagonal nnzs */
+      float mcount;
+      mcount = cacheOut(n, row_ptr, cols);
+      mcount = (mcount/nnz)*100;
+      std::cout<<"movable diagonal nnzs (%): "<<mcount<<std::endl;
 
     } else if (function_name == "--imbWarp") {
       /* Compute imbalance factor */
