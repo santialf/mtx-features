@@ -6,7 +6,7 @@ make<br /> <br />
 execute: <br />
 ./execute cage.mtx --nameOfCommand
 
-commands:
---diagonal
---cacheOut
+commands: <br />
+--diagonal <br />
+--cacheOut <br />
 --blockDiagonal
