@@ -4,4 +4,9 @@ computation of multiple sparse matrix features (sparsebase is used)
 compile: <br />
 make<br /> <br />
 execute: <br />
-./execute cage.mtx
+./execute cage.mtx --nameOfCommand
+
+commands:
+--diagonal
+--cacheOut
+--blockDiagonal
