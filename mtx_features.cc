@@ -93,7 +93,7 @@ float bandwidth(long int n, int *row_ptr, int *cols){
 }
 
 float diagonal(long int n, int *row_ptr, int *cols){
-  float b = 32;
+  float b = 0;
   float count = 0;
 
   for (int i = 0; i < n; i++) {
@@ -106,8 +106,10 @@ float diagonal(long int n, int *row_ptr, int *cols){
 }
 
 float blockDiagonal(long int n, int *row_ptr, int *cols){
-  float b = 32;
-  long int blocks = static_cast<int>(std::ceil(static_cast<double>(n) / b));
+  /*float b = 32;
+  long int blocks = static_cast<int>(std::ceil(static_cast<double>(n) / b));*/
+  long int blocks = 2;
+  float b = static_cast<int>(std::ceil(static_cast<double>(n) / blocks));
   float count = 0;
 
   for (int i = 0; i < blocks; i++) {
@@ -118,7 +120,7 @@ float blockDiagonal(long int n, int *row_ptr, int *cols){
         break;
 
       for (int k = row_ptr[id]; k < row_ptr[id + 1]; k++) {
-        if ((cols[k] >= id-left) && (cols[k] <= id+right))
+        if ((cols[k] >= id-left) && (cols[k] < id+right))
           count++;
       }
       left++;
@@ -131,11 +133,9 @@ float blockDiagonal(long int n, int *row_ptr, int *cols){
 
 float cacheOut(long int n, int *row_ptr, int *cols){
 
-  int max = 0;
-  long int blocks = 32;
+  long int blocks = 2;
   float b = static_cast<int>(std::ceil(static_cast<double>(n) / blocks));
-  float localCount = 0;
-  float total = 0;
+  float max = 0, localCount = 0, total = 0;
 
   for (int i = 0; i < blocks; i++) {
     long int left = 0, right = b;
@@ -146,9 +146,9 @@ float cacheOut(long int n, int *row_ptr, int *cols){
           break;
 
         for (int k = row_ptr[id]; k < row_ptr[id + 1]; k++) {
-          if ((cols[k] >= left) && (cols[k] <= right))
+          if ((cols[k] >= left) && (cols[k] < right))
             localCount++;
-          if (cols[k] > right)
+          if (cols[k] >= right)
             break;
         }
       }
