@@ -164,6 +164,29 @@ float cacheOut(long int n, int *row_ptr, int *cols){
   return total;
 }
 
+float mismatch(long int n, int *row_ptr, int *cols){
+
+  std::unordered_map<int, int> hashMap;
+  int threadsPerWave = 221160, reps = 0;
+
+  for (int i = 0; i < n; i += threadsPerWave) {
+    for (int j = 0; j < threadsPerWave; j++) {
+      int id = i + j;
+      if (id >= n)
+        break;
+      for (int k = row_ptr[id]; k < row_ptr[id + 1]; k++) {
+        auto it = hashMap.find(cols[k]);
+        if (it == hashMap.end())
+          hashMap.insert({cols[k], 0});
+        else 
+          reps++;
+      }
+    }
+    hashMap.clear();
+  }
+  return reps;
+}
+
 long int blocks(long int n, int *row_ptr, int *cols, int block_size, long int nnz){
 
   int num_blocks = static_cast<int>(std::ceil(static_cast<double>(n) / block_size));
@@ -235,10 +258,17 @@ int main(int argc, char * argv[]){
 
     } else if (function_name == "--cacheOut") {
       /* Compute off diagonal nnzs */
+      float ccount;
+      ccount = cacheOut(n, row_ptr, cols);
+      ccount = (ccount/nnz)*100;
+      std::cout<<"movable diagonal nnzs (%): "<<ccount<<std::endl;
+
+    } else if (function_name == "--mismatch") {
+      /* Compute off diagonal nnzs */
       float mcount;
-      mcount = cacheOut(n, row_ptr, cols);
+      mcount = mismatch(n, row_ptr, cols);
       mcount = (mcount/nnz)*100;
-      std::cout<<"movable diagonal nnzs (%): "<<mcount<<std::endl;
+      std::cout<<"repetitions (%): "<<mcount<<std::endl;
 
     } else if (function_name == "--imbWarp") {
       /* Compute imbalance factor */
