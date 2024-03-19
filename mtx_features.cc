@@ -164,6 +164,7 @@ float cacheOut(long int n, int *row_ptr, int *cols){
   return total;
 }
 
+/* Counts number of nnzs with the same column id */
 float mismatch(long int n, int *row_ptr, int *cols){
 
   std::unordered_map<int, int> hashMap;
@@ -187,6 +188,7 @@ float mismatch(long int n, int *row_ptr, int *cols){
   return reps;
 }
 
+/* Counts number of blocks that have nnzs */
 long int blocks(long int n, int *row_ptr, int *cols, int block_size, long int nnz){
 
   int num_blocks = static_cast<int>(std::ceil(static_cast<double>(n) / block_size));
@@ -212,6 +214,42 @@ long int blocks(long int n, int *row_ptr, int *cols, int block_size, long int nn
     hashMap.clear();
   }
   return sum;
+}
+
+/* Computes the average density of blocks with nnzs */
+float blockDensity(long int n, int *row_ptr, int *cols, int block_size, long int nnz){
+
+  int num_blocks = static_cast<int>(std::ceil(static_cast<double>(n) / block_size));
+  int sum = 0;
+  float total_avg = 0;
+
+  std::unordered_map<int, int> hashMap;
+
+  for (int i = 0; i < num_blocks; i++) {
+    for (int j = 0; j < block_size; j++) {
+      long int id = block_size*i + j;
+      if (id >= n)
+        break;
+      for (int k = row_ptr[id]; k < row_ptr[id + 1]; k++) {
+        int bucket = static_cast<int>(std::ceil(static_cast<double>(cols[k]) / block_size));
+        if (((cols[k]) % block_size) != 0)
+          bucket--;
+        auto it = hashMap.find(bucket);
+        if (it == hashMap.end())
+          hashMap.insert({bucket, 1});
+        else 
+          it->second++;
+      }
+    }
+    for (const auto& entry : hashMap) {
+      float avg = (float)entry.second/(block_size*block_size);
+      total_avg += avg;
+    }
+    sum += hashMap.size();
+    hashMap.clear();
+  }
+  
+  return (float)total_avg/sum*100;
 }
 
 int main(int argc, char * argv[]){
@@ -292,8 +330,12 @@ int main(int argc, char * argv[]){
       std::cout<<"nnzs: "<<nnz<<std::endl;
 
     } else if (function_name == "--blocks") {
-      int num_blocks = blocks(n, row_ptr, cols, 256, nnz);
+      int num_blocks = blocks(n, row_ptr, cols, 32, nnz);
       std::cout<<"number of blocks with nnzs: "<<num_blocks<<std::endl;
+
+    } else if (function_name == "--blockDensity") {
+      float block_dens = blockDensity(n, row_ptr, cols, 32, nnz);
+      std::cout<<"average block density: "<<block_dens<<std::endl;
 
     }
   }
