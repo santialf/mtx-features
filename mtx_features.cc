@@ -252,6 +252,44 @@ float blockDensity(long int n, int *row_ptr, int *cols, int block_size, long int
   return (float)total_avg/sum*100;
 }
 
+
+/* Computes the average bandwidth of the median value from the left to the right */
+long int medianBW(long int n, int *row_ptr, int *cols, long int nnz){
+
+  long int avg = 0;
+
+  for (int i=0; i<n; i++) {
+    std::vector<int> left;
+    std::vector<int> right;
+    int left_cntr = 0, right_cntr = 0;
+    for (int j = row_ptr[i]; j<row_ptr[i+1]; j++) {
+      int col = cols[j];
+      if (col <= i) {
+        left.push_back(col);
+        left_cntr++;
+      }
+      if (col >= i) {
+        right.push_back(col);
+        right_cntr++;
+      }
+    }
+    int bw;
+    if ((left_cntr == 0) && (right_cntr == 0))
+      bw = 0;
+    else if (left_cntr == 0)
+      bw = right[right_cntr/2] - i;
+    else if (right_cntr == 0)
+      bw = i - left[left_cntr/2];
+    else
+      bw = right[right_cntr/2] - left[left_cntr/2];
+
+    avg += bw;
+  }
+  avg = avg/n;
+  
+  return avg;
+}
+
 int main(int argc, char * argv[]){
 
   if (argc < 2){
@@ -337,6 +375,9 @@ int main(int argc, char * argv[]){
       float block_dens = blockDensity(n, row_ptr, cols, 32, nnz);
       std::cout<<"average block density: "<<block_dens<<std::endl;
 
+    } else if (function_name == "--medianBW") {
+      float median_bw = medianBW(n, row_ptr, cols, nnz);
+      std::cout<<"average median bw: "<<median_bw<<std::endl;
     }
   }
 
