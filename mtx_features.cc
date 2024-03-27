@@ -377,6 +377,7 @@ int main(int argc, char * argv[]){
 
     } else if (function_name == "--medianBW") {
       float median_bw = medianBW(n, row_ptr, cols, nnz);
+      median_bw = median_bw/n * 100.0;
       std::cout<<"average median bw: "<<median_bw<<std::endl;
     }
   }
