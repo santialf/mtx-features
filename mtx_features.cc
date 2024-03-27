@@ -189,7 +189,7 @@ float mismatch(long int n, int *row_ptr, int *cols){
 }
 
 /* Counts number of blocks that have nnzs */
-long int blocks(long int n, int *row_ptr, int *cols, int block_size, long int nnz){
+long int blocks(long int n, int *row_ptr, int *cols, int block_size){
 
   int num_blocks = static_cast<int>(std::ceil(static_cast<double>(n) / block_size));
   int sum = 0;
@@ -290,6 +290,29 @@ long int medianBW(long int n, int *row_ptr, int *cols, long int nnz){
   return avg;
 }
 
+/* Counts number of blocks that have nnzs */
+long int stripes(long int n, int *row_ptr, int *cols, int stripe_size){
+
+  int sum = 0;
+  std::unordered_map<int, int> hashMap;
+
+  for (int i = 0; i < n; i++) {
+    //for (int j = 0; j < stripe_size; j++) {
+      for (int k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
+        int bucket = static_cast<int>(std::ceil(static_cast<double>(cols[k]) / stripe_size));
+        if (((cols[k]) % stripe_size) != 0)
+          bucket--;
+        auto it = hashMap.find(bucket);
+        if (it == hashMap.end())
+          hashMap.insert({bucket, 1});
+      }
+    //}
+    sum += hashMap.size();
+    hashMap.clear();
+  }
+  return sum;
+}
+
 int main(int argc, char * argv[]){
 
   if (argc < 2){
@@ -368,8 +391,12 @@ int main(int argc, char * argv[]){
       std::cout<<"nnzs: "<<nnz<<std::endl;
 
     } else if (function_name == "--blocks") {
-      int num_blocks = blocks(n, row_ptr, cols, 32, nnz);
+      long int num_blocks = blocks(n, row_ptr, cols, 32);
       std::cout<<"number of blocks with nnzs: "<<num_blocks<<std::endl;
+
+    } else if (function_name == "--stripes") {
+      long int num_stripes = stripes(n, row_ptr, cols, 32);
+      std::cout<<"number of stripes with nnzs: "<<num_stripes<<std::endl;
 
     } else if (function_name == "--blockDensity") {
       float block_dens = blockDensity(n, row_ptr, cols, 32, nnz);
