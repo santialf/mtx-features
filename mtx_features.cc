@@ -253,6 +253,33 @@ float blockDensity(long int n, int *row_ptr, int *cols, int block_size, long int
 }
 
 
+/* Computes number of blocks with nnzs per row of blocks */
+void printNumberBLocksPerRow(long int n, int *row_ptr, int *cols, int block_size){
+
+  int num_blocks = static_cast<int>(std::ceil(static_cast<double>(n) / block_size));
+  std::unordered_map<int, int> hashMap;
+
+  for (int i = 0; i < num_blocks; i++) {
+    for (int j = 0; j < block_size; j++) {
+      long int id = block_size*i + j;
+      if (id >= n)
+        break;
+      for (int k = row_ptr[id]; k < row_ptr[id + 1]; k++) {
+        int bucket = static_cast<int>(std::ceil(static_cast<double>(cols[k]) / block_size));
+        if (((cols[k]) % block_size) != 0)
+          bucket--;
+        auto it = hashMap.find(bucket);
+        if (it == hashMap.end())
+          hashMap.insert({bucket, 1});
+      }
+    }
+    std::cout << hashMap.size() << std::endl;
+    hashMap.clear();
+  }
+  return;
+}
+
+
 /* Computes the average bandwidth of the median value from the left to the right */
 long int medianBW(long int n, int *row_ptr, int *cols, long int nnz){
 
@@ -391,7 +418,7 @@ int main(int argc, char * argv[]){
       std::cout<<"nnzs: "<<nnz<<std::endl;
 
     } else if (function_name == "--blocks") {
-      long int num_blocks = blocks(n, row_ptr, cols, 32);
+      long int num_blocks = blocks(n, row_ptr, cols, 8);
       std::cout<<"number of blocks with nnzs: "<<num_blocks<<std::endl;
 
     } else if (function_name == "--stripes") {
@@ -406,12 +433,11 @@ int main(int argc, char * argv[]){
       float median_bw = medianBW(n, row_ptr, cols, nnz);
       median_bw = median_bw/n * 100.0;
       std::cout<<"average median bw: "<<median_bw<<std::endl;
+
+    } else if (function_name == "--printNumBlocksPerRow") {
+      printNumberBLocksPerRow(n, row_ptr, cols, 16);
     }
   }
-
-  /*int rows_per_thread = static_cast<int>(std::ceil(static_cast<double>(n)/221184));
-  int remaining = n%221184;
-  std::cout<<rows_per_thread<<" "<<remaining<<std::endl;*/
 
   return 0;
 }
